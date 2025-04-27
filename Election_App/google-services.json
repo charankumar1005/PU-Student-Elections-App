@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131619774472",
+    "project_id": "pu-student-council-elections",
+    "storage_bucket": "pu-student-council-elections.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131619774472:android:de2a27dc93059a9734b1bd",
+        "android_client_info": {
+          "package_name": "com.pu.elections"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUFqVF5pqDeqcVEu-Z3tpm4gUmx9bViog"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
