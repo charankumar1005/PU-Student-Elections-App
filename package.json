@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "expo": "^52.0.33",
+    "expo-notifications": "~0.29.14"
+  }
+}

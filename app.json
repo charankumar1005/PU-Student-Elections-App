@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "01fd8873-9072-4c0b-b44c-fe89689793cb"
+      }
+    },
+    "android": {
+      "package": "com.studentscouncil.election"
+    }
+  }
+}
