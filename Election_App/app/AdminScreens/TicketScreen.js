@@ -42,7 +42,7 @@ const TicketsScreen = () => {
       setLoading(true);
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
-        router.replace("/screens/login");
+        router.replace("/UserDashboardScreens/login");
         return;
       }
 

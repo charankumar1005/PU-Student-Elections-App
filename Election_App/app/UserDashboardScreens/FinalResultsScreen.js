@@ -1,17 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, Image, ActivityIndicator, StyleSheet } from 'react-native';
-import { Card, Text, Title, Paragraph, Divider } from 'react-native-paper';
+import { Card, Text, Title, Paragraph } from 'react-native-paper';
 import axios from 'axios';
 import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // import this
 
 const FinalResultsScreen = () => {
   const [results, setResults] = useState([]);
   const [postedAt, setPostedAt] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userDepartment, setUserDepartment] = useState('');
 
   useEffect(() => {
+    fetchUserDetails();
     fetchResults();
   }, []);
+
+  const fetchUserDetails = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userDetails');
+      if (userData) {
+        const parsedData = JSON.parse(userData);
+        setUserDepartment(parsedData.department); // assuming your user object has "department" field
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
+  };
 
   const fetchResults = async () => {
     try {
@@ -29,6 +44,8 @@ const FinalResultsScreen = () => {
     return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
   }
 
+  const filteredResults = results.filter(item => item.department === userDepartment);
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {postedAt ? (
@@ -41,18 +58,22 @@ const FinalResultsScreen = () => {
         </Text>
       )}
 
-      {results.length === 0 ? (
+      {filteredResults.length === 0 ? (
         <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>📭 No results have been posted yet.</Text>
+          <Text style={styles.noResultsText}>📭 No results for your department yet.</Text>
         </View>
       ) : (
-        results.map((item, index) => (
+        filteredResults.map((item, index) => (
           <Card key={index} style={styles.card} mode="elevated">
             <Card.Content style={styles.cardContent}>
               <View style={styles.row}>
                 <View style={styles.imageWrapper}>
                 <Image
-  source={{ uri: `http://192.168.151.139:5000/${item.candidate.image}` }}
+  source={{
+    uri: item.candidateImage
+      ? `http://192.168.151.139:5000/${item.candidateImage}`
+      : 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
+  }}
   style={styles.candidateImage}
 />
 

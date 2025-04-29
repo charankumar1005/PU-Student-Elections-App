@@ -29,7 +29,7 @@ export default function RootLayout() {
         <Stack.Screen name="UserDashboardScreens/NominationStatus" options={{ headerShown: false }} />
         <Stack.Screen name="UserDashboardScreens/UserApprovedCandidatesScreen" options={{ headerShown: false }} />
         <Stack.Screen name="AdminScreens/VotesList" options={{ headerShown: false }} />
-        <Stack.Screen name="UserDashboardScreens/TicketScreen" options={{ headerShown: false }} />
+        <Stack.Screen name="AdminScreens/TicketScreen" options={{ headerShown: false }} />
        <Stack.Screen name="UserDashboardScreens/viewVotes" options={{ headerShown: false }} />
        <Stack.Screen name="AdminScreens/DisplyVotes" options={{ headerShown: false }} />
        <Stack.Screen name="AdminScreens/VotesByDepartment" options={{ headerShown: false }} />

@@ -77,7 +77,7 @@ export default function HomeScreen() {
            
            
           <Text style={styles.title}>Pondicherry University</Text>
-          <Text style={styles.subtitle}>Student Council Elections 2023</Text>
+          <Text style={styles.subtitle}>Student Council Elections 2025</Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 

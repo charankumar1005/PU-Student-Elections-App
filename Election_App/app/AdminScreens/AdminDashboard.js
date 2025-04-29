@@ -231,31 +231,28 @@ const renderProfileModal = () => (
   </Overlay>
 );
   
-   const fetchUsersData = async (token) => {
-    try {
-      setLoading(prev => ({ ...prev, users: true }));
-      const response = await fetch("http://192.168.151.139:5000/api/users", {
-        headers: { Authorization: `Bearer ${token}` ,
-         'Content-Type': 'application/json'
+  const fetchUsersData = async (token) => {
+  try {
+    setLoading(prev => ({ ...prev, users: true }));
+    const response = await fetch("http://192.168.151.139:5000/api/users/grouped", {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-      });
+    });
 
-      if (!response.ok) throw new Error("Failed to fetch users");
-      const { departments } = await response.json();
-      
-      const formattedSections = departments.map(dept => ({
-        title: dept.department,
-        data: dept.users
-      }));
-      
-      setSections(formattedSections);
-      updateChartData(formattedSections);
-    } catch (error) {
-      handleError("Users Error", error.message);
-    } finally {
-      setLoading(prev => ({ ...prev, users: false }));
-    }
-  };
+    if (!response.ok) throw new Error("Failed to fetch grouped users");
+
+    const sections = await response.json(); // directly an array now
+    setSections(sections);
+    updateChartData(sections);
+  } catch (error) {
+    handleError("Users Error", error.message);
+  } finally {
+    setLoading(prev => ({ ...prev, users: false }));
+  }
+};
+
 // delete user
  const deleteUser = async (userId) => {
     try {
@@ -409,27 +406,35 @@ const postResults = async () => {
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem('userToken');
+            if (!token) {
+              Alert.alert("Error", "User not authenticated.");
+              return;
+            }
+
             const res = await fetch('http://192.168.151.139:5000/api/results', {
               method: 'POST',
-              headers: { Authorization: `Bearer ${token}` },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              }
             });
 
             const json = await res.json();
-            if (json.success) {
-              Alert.alert("Success", "Results Posted Successfully!");
+
+            if (res.ok && json.success) {
+              Alert.alert("✅ Success", "Results Posted Successfully!");
             } else {
-              Alert.alert("Notice", json.message || "Failed to post results.");
+              Alert.alert("⚠️ Notice", json.message || "Failed to post results.");
             }
           } catch (err) {
-            console.error(err);
-            Alert.alert("Error", "Failed to post results");
+            console.error("Error posting results:", err);
+            Alert.alert("❌ Error", "Failed to post results. Please try again.");
           }
         }
       }
     ]
   );
 };
-
 
   const handlePostNotification = async () => {
     try {
@@ -515,12 +520,13 @@ const postResults = async () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          onPress={() => router.push("/AdminScreens/DisplyVotes")} 
-          style={styles.menuItem}
-        >
-          <Text style={styles.menuText}>🗳️ View Votes</Text>
-        </TouchableOpacity>
+        <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/AdminScreens/ApprovedCandidatesScreen")}
+          >
+            <Ionicons name="checkmark-circle" size={24} color="white" />
+            <Text style={styles.navText}>Approved</Text>
+          </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => router.push("/AdminScreens/tickets")} 
           style={styles.menuItem}
@@ -697,13 +703,15 @@ const postResults = async () => {
              <Ionicons name="person-add" size={24} color="white" />
             <Text style={styles.navText}>Nominations</Text>
           </TouchableOpacity>
-           <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.push("/AdminScreens/ApprovedCandidatesScreen")}
-          >
-            <Ionicons name="checkmark-circle" size={24} color="white" />
-            <Text style={styles.navText}>Approved</Text>
-          </TouchableOpacity>
+          <TouchableOpacity
+  style={styles.navItem}
+  onPress={() => router.push("/AdminScreens/DisplyVotes")}
+>
+    <Ionicons name="stats-chart" size={24} color="white" />
+
+  <Text style={styles.navText}>View Votes</Text>
+</TouchableOpacity>
+
         </View>
       </View>
        {renderProfileModal()}
