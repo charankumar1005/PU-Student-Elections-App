@@ -577,7 +577,8 @@ app.post('/api/results', async (req, res) => {
             department: '$nomination.candidate.department',
             category: '$nomination.candidate.category',
             candidateUserId: '$nomination.user',
-            candidateName: '$nomination.candidate.name' // <-- Extract name
+            candidateName: '$nomination.candidate.name' ,// <-- Extract name
+            candidateImage: '$nomination.candidate.image' // ✅ also extract image
           },
           voteCount: { $sum: 1 }
         }
@@ -614,7 +615,8 @@ if (alreadyPosted) {
         department: r._id.department,
         category: r._id.category,
         candidate: r.winner._id.candidateUserId,  // ✅ store correct User ObjectId
-         candidateName: r.winner._id.candidateName,  // ✅ Store name
+         candidateName: r.winner._id.candidateName, 
+           candidateImage: r.winner._id.candidateImage, 
         voteCount: r.winner.voteCount
       });
     }
@@ -631,19 +633,31 @@ if (alreadyPosted) {
 // backend: routes/results.js or similar
 app.get('/api/results', async (req, res) => {
   try {
-    const results = await Result.find().sort({ declaredAt: -1 }); // Get results sorted by declaredAt
+    const results = await Result.find()
+      // .populate('candidate', 'fullName email department image') // Uncomment if needed in future
+      .sort({ declaredAt: -1 });
+
     const latestDeclared = results.length > 0 ? results[0].declaredAt : null;
 
     res.json({
       success: true,
-      postedAt: latestDeclared, // Send declared time if available
-      data: results,
+      postedAt: latestDeclared,
+      data: results.map(r => ({
+        id: r._id,
+        candidateName: r.candidateName,
+        candidateImage: r.candidateImage ? `http://192.168.151.139:5000/${r.candidateImage}` : null,
+        department: r.department,
+        category: r.category,
+        voteCount: r.voteCount,
+        declaredAt: r.declaredAt,
+      })),
     });
   } catch (err) {
     console.error('Error fetching results:', err);
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 });
+
 
 
 // Ensure proper error handling in your upload route
@@ -690,7 +704,7 @@ app.post(
       res.status(201).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: `http://1192.168.98.139:5000/uploads/images/${req.file.filename}`,
+        imageUrl: `http://192.168.151.139:5000/uploads/images/${req.file.filename}`,
       });
     } catch (error) {
       console.error("Server Upload Error:", error);
@@ -712,7 +726,7 @@ app.get('/api/images/my-images', verifyToken, async (req, res) => {
     const formattedImages = images.map(img => ({
       _id: img._id,
       filename: img.filename,
-      url: `http://192.168.98.139:5000/${img.path}`, // Full accessible URL
+      url: `http://192.168.151.139:5000/${img.path}`, // Full accessible URL
       uploadedAt: img.uploadedAt
     }));
 
@@ -736,7 +750,7 @@ app.get('/api/images/user/:userId', async (req, res) => {
 
     res.json({
       success: true,
-      url: `http://192.168.98.139:5000/${image.path}`,
+      url: `http://192.168.151.139:5000/${image.path}`,
     });
   } catch (error) {
     console.error("Error fetching image by userId:", error);
@@ -938,7 +952,7 @@ app.post('/nominations',
     }
   }
 );
-const API_URL = process.env.API_URL || "http://192.168.98.139:5000";
+const API_URL = process.env.API_URL || "http://192.168.151.139:5000";
 
 // In the GET /nominations route handler
 app.get('/api/nominations', verifyToken, async (req, res) => {
@@ -1323,99 +1337,114 @@ app.post('/api/helpdesk/submit-ticket', verifyToken, async (req, res) => {
 });
 
 
-app.get('/api/helpdesk/tickets', verifyToken, async (req, res) => {
+// app.get('/api/helpdesk/tickets', verifyToken, async (req, res) => {
+//   try {
+//     const { status, department, groupBy } = req.query;
+//     const isAdmin = req.user.role === 'admin';
+//     const statusFilter = status || 'pending';
+
+//     if (isAdmin && groupBy === 'department') {
+//       const aggregationPipeline = [
+//         {
+//           $match: {
+//             status: statusFilter,
+//             department: { $exists: true, $ne: null }
+//           }
+//         },
+//         {
+//           $group: {
+//             _id: "$department",
+//             tickets: {
+//               $push: {
+//                 _id: "$_id",
+//                 subject: "$subject",
+//                 description: "$description",
+//                 status: "$status",
+//                 userId: "$userId",
+//                 createdAt: "$createdAt"
+//               }
+//             },
+//             count: { $sum: 1 }
+//           }
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             department: "$_id",
+//             tickets: 1,
+//             count: 1
+//           }
+//         },
+//         { $sort: { department: 1 } }
+//       ];
+
+//       const groupedTickets = await Ticket.aggregate(aggregationPipeline);
+//       // Populate userId in each ticket
+//       for (const group of groupedTickets) {
+//         for (const ticket of group.tickets) {
+//           await Ticket.populate(ticket, {
+//             path: 'userId',
+//             select: 'name email'
+//           });
+//         }
+//       }
+
+//       return res.json({
+//         success: true,
+//         grouped: true,
+//         data: groupedTickets
+//       });
+//     }
+
+//     // Non-admin or no grouping requested
+//     const query = isAdmin
+//       ? (status ? { status } : {})
+//       : { userId: req.user.id, ...(status && { status }) };
+
+//     if (department && isAdmin) query.department = department;
+
+//     const tickets = await Ticket.find(query)
+//       .sort({ createdAt: -1 })
+//       .populate('userId', 'name email')
+//       .lean();
+
+//     const formattedTickets = tickets.map(ticket => ({
+//       ...ticket,
+//       createdAt: new Date(ticket.createdAt).toLocaleString(),
+//     }));
+
+//     return res.json({
+//       success: true,
+//       grouped: false,
+//       data: formattedTickets
+//     });
+
+//   } catch (error) {
+//     console.error("📂 Ticket Fetch Error:", error);
+//     if (!res.headersSent) {
+//       res.status(500).json({
+//         success: false,
+//         error: "SERVER_ERROR",
+//         message: error.message
+//       });
+//     }
+//   }
+// });
+app.get("/api/tickets", verifyToken, async (req, res) => {
   try {
-    const { status, department, groupBy } = req.query;
-    const isAdmin = req.user.role === 'admin';
-    const statusFilter = status || 'pending';
-
-    if (isAdmin && groupBy === 'department') {
-      const aggregationPipeline = [
-        {
-          $match: {
-            status: statusFilter,
-            department: { $exists: true, $ne: null }
-          }
-        },
-        {
-          $group: {
-            _id: "$department",
-            tickets: {
-              $push: {
-                _id: "$_id",
-                subject: "$subject",
-                description: "$description",
-                status: "$status",
-                userId: "$userId",
-                createdAt: "$createdAt"
-              }
-            },
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            department: "$_id",
-            tickets: 1,
-            count: 1
-          }
-        },
-        { $sort: { department: 1 } }
-      ];
-
-      const groupedTickets = await Ticket.aggregate(aggregationPipeline);
-      // Populate userId in each ticket
-      for (const group of groupedTickets) {
-        for (const ticket of group.tickets) {
-          await Ticket.populate(ticket, {
-            path: 'userId',
-            select: 'name email'
-          });
-        }
-      }
-
-      return res.json({
-        success: true,
-        grouped: true,
-        data: groupedTickets
-      });
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: "Access denied" });
     }
 
-    // Non-admin or no grouping requested
-    const query = isAdmin
-      ? (status ? { status } : {})
-      : { userId: req.user.id, ...(status && { status }) };
+    const tickets = await Ticket.find().populate('userId', 'name email department');
 
-    if (department && isAdmin) query.department = department;
-
-    const tickets = await Ticket.find(query)
-      .sort({ createdAt: -1 })
-      .populate('userId', 'name email')
-      .lean();
-
-    const formattedTickets = tickets.map(ticket => ({
-      ...ticket,
-      createdAt: new Date(ticket.createdAt).toLocaleString(),
-    }));
-
-    return res.json({
-      success: true,
-      grouped: false,
-      data: formattedTickets
-    });
-
+    res.status(200).json({ tickets });
   } catch (error) {
-    console.error("📂 Ticket Fetch Error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        error: "SERVER_ERROR",
-        message: error.message
-      });
-    }
+    console.error("Error fetching tickets:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
+
 
 app.patch('/api/helpdesk/tickets/:id/seen', verifyToken, async (req, res) => {
   try {
